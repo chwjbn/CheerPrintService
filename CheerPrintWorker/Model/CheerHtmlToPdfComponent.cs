@@ -21,14 +21,22 @@ namespace CheerPrintWorker.Model
 {
     public partial class CheerHtmlToPdfComponent : Component, nsIWebProgressListener
     {
+        /// <summary>
+        /// PDF生成事件
+        /// </summary>
+        public class PdfMakingStatus : EventArgs
+        {
+            public int percentage;    //进度
+            public string statusText;   //状态信息
+        }
 
-        private GeckoWebBrowser mWebBrowser = null;
+        private GeckoWebBrowser mWebBrowser = null;   //火狐浏览器控件
 
-        private CheerPrintArgs mCheerPrintArgs = new CheerPrintArgs();
+        private CheerPrintArgs mCheerPrintArgs = new CheerPrintArgs();   //打印参数
 
-        private string mDataRoot = string.Empty;
-        private string mHtmlPdfPath = string.Empty;
-        private string mPdfPath = string.Empty;
+        private string mDataRoot = string.Empty;   //数据目录  
+        private string mHtmlPdfPath = string.Empty;   //html打印成pdf路径
+        private string mPdfPath = string.Empty;    //pdf二次处理后pdf路径
 
 
         public event EventHandler<PdfMakingStatus> mStatusChanged = null;
@@ -46,6 +54,10 @@ namespace CheerPrintWorker.Model
         }
 
 
+        /// <summary>
+        /// 启动任务
+        /// </summary>
+        /// <param name="iCheerPrintArgs"></param>
         public void StartTask(CheerPrintArgs iCheerPrintArgs)
         {
             if (!Gecko.Xpcom.IsInitialized)
@@ -80,7 +92,7 @@ namespace CheerPrintWorker.Model
             this.mWebBrowser.DocumentCompleted += MWebBrowser_DocumentCompleted;
 
  
-            this.mWebBrowser.Size = new Size(1920, 1320);
+            this.mWebBrowser.Size = new Size(this.mCheerPrintArgs.htmlWindowWidth, this.mCheerPrintArgs.htmlWindowHeight);
 
             var url = this.mCheerPrintArgs.htmlInputFilePath;
 
@@ -94,6 +106,9 @@ namespace CheerPrintWorker.Model
 
         }
 
+        /// <summary>
+        /// 启动打印
+        /// </summary>
         public void StartPrint()
         {
             try
@@ -309,18 +324,23 @@ namespace CheerPrintWorker.Model
             handler(this, EventArgs.Empty);
         }
 
-        public class PdfMakingStatus : EventArgs
-        {
-            public int percentage;
-            public string statusText;
-        }
+        
 
-
+        /// <summary>
+        /// 当主文档加载完成
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void MWebBrowser_DocumentCompleted(object sender, Gecko.Events.GeckoDocumentCompletedEventArgs e)
         {
             this.brwDocCheckTimer.Enabled = true;
         }
 
+        /// <summary>
+        /// 文档加载检测定时器方法
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void brwDocCheckTimer_Tick(object sender, EventArgs e)
         {
             try
@@ -430,6 +450,31 @@ namespace CheerPrintWorker.Model
         }
 
 
+        /// <summary>
+        /// 打印检测定时器工作方法
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void brwPrintCheckTimer_Tick(object sender, EventArgs e)
+        {
+            if (this.isFileUsed(this.mHtmlPdfPath))
+            {
+                return;
+            }
+
+            this.brwPrintCheckTimer.Enabled = false;
+
+            this.excutePageNumberPrint();
+
+            this.RaiseFinished();
+        }
+
+
+        /// <summary>
+        /// 判断文件是否占用
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
         private bool isFileUsed(string fileName)
         {
             var bRet = true;
@@ -452,24 +497,10 @@ namespace CheerPrintWorker.Model
             {
                 bRet = true;
 
-                CheerLib.LogWriter.Log(this.GetType().FullName+ ".isFileUsed:"+ex.Message);
+                CheerLib.LogWriter.Log(this.GetType().FullName + ".isFileUsed:" + ex.Message);
             }
 
             return bRet;
-        }
-
-        private void brwPrintCheckTimer_Tick(object sender, EventArgs e)
-        {
-            if (this.isFileUsed(this.mHtmlPdfPath))
-            {
-                return;
-            }
-
-            this.brwPrintCheckTimer.Enabled = false;
-
-            this.excutePageNumberPrint();
-
-            this.RaiseFinished();
         }
     }
 }

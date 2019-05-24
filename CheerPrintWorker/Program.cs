@@ -30,23 +30,41 @@ namespace CheerPrintWorker
             Application.Run(new MainForm(args));
         }
 
+        /// <summary>
+        /// 当应用退出
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private static void Application_ApplicationExit(object sender, EventArgs e)
         {
             UnInitBrw();
         }
 
+        /// <summary>
+        /// 未处理异常
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             CheerLib.LogWriter.Error("Program.CurrentDomain_UnhandledException");
             CheerLib.LogWriter.Log(e.ToString());
         }
 
+        /// <summary>
+        /// 主线程异常
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private static void Application_ThreadException(object sender, System.Threading.ThreadExceptionEventArgs e)
         {
             CheerLib.LogWriter.Error("Program.Application_ThreadException");
             CheerLib.LogWriter.Log(e.ToString());
         }
 
+        /// <summary>
+        /// 初始化浏览器环境
+        /// </summary>
         private static void InitBrw()
         {
             try
@@ -72,6 +90,9 @@ namespace CheerPrintWorker
             }
         }
 
+        /// <summary>
+        /// 反向初始化浏览器环境
+        /// </summary>
         private static void UnInitBrw()
         {
             try

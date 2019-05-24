@@ -18,7 +18,7 @@ namespace CheerPrintWorker
     {
 
         private string[] mArgs = new string[] { };
-        private CheerHtmlToPdfComponent mCheerHtmlToPdfComponent;
+        private CheerHtmlToPdfComponent mCheerHtmlToPdfComponent;   //HTML打印PDF组件
 
         public MainForm(string[] args)
         {
@@ -30,6 +30,9 @@ namespace CheerPrintWorker
         }
 
 
+        /// <summary>
+        /// 初始化打印组件
+        /// </summary>
         private void InitCheerHtmlToPdf()
         {
             try
@@ -50,12 +53,22 @@ namespace CheerPrintWorker
             }
         }
 
+        /// <summary>
+        /// 组件状态改变
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void MCheerHtmlToPdfComponent_mStatusChanged(object sender, CheerHtmlToPdfComponent.PdfMakingStatus e)
         {
             this.process_bar_main.Value = e.percentage;
             this.status_text_bar.Text = e.statusText;
         }
 
+        /// <summary>
+        /// 组件任务完成
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void MCheerHtmlToPdfComponent_mFinished(object sender, EventArgs e)
         {
             this.Close();
@@ -63,6 +76,11 @@ namespace CheerPrintWorker
 
         
 
+        /// <summary>
+        /// 窗口加载
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void MainForm_Load(object sender, EventArgs e)
         {
 

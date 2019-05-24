@@ -9,6 +9,17 @@ namespace CheerPrintWorker.Model
 {
     public class CheerPrintArgs:CheerLib.Model.JsonData
     {
+
+        /// <summary>
+        /// HTML渲染窗口宽度,单位px
+        /// </summary>
+        public int htmlWindowWidth = 1440;
+
+        /// <summary>
+        /// HTML渲染窗口高度,单位px
+        /// </summary>
+        public int htmlWindowHeight = 900;
+
         /// <summary>
         /// 输入Html文件路径
         /// </summary>
@@ -73,6 +84,9 @@ namespace CheerPrintWorker.Model
 
                 var xmlDoc = new XmlDocument();
                 xmlDoc.Load(xmlFilePath);
+
+                this.htmlWindowWidth = int.Parse(xmlDoc.SelectSingleNode("print/html_window_width").InnerXml);
+                this.htmlWindowHeight = int.Parse(xmlDoc.SelectSingleNode("print/html_window_height").InnerXml);
 
                 this.htmlInputFilePath = xmlDoc.SelectSingleNode("print/input_html_path").InnerXml;
                 this.pdfOutputFilePath = xmlDoc.SelectSingleNode("print/output_pdf_path").InnerXml;

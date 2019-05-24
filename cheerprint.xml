@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<print>
+    <!--输入HTML文件路径-->
+	<input_html_path>D:\devdata\cheertool\PrintTool\Debug\PrintTool\test\letterSpacingTest.html</input_html_path>
+	
+	<!--输出PDF文件路径-->
+	<output_pdf_path>D:\devdata\cheertool\PrintTool\Debug\PrintTool\test\letterSpacingTest.pdf</output_pdf_path>
+	
+	<!--纵向打印,1纵向，0横向-->
+	<portrait>1</portrait>
+	
+	<!--页面宽度,单位毫米-->
+	<page_width>210</page_width>
+	
+	<!--页面高度,单位毫米-->
+	<page_height>297</page_height>
+	
+	<!--页面边距,单位毫米-->
+	<margin_top>5</margin_top>
+	
+	<margin_bottom>10</margin_bottom>
+	
+	<margin_left>5</margin_left>
+	
+	<margin_right>5</margin_right>
+	
+	
+	
+</print>

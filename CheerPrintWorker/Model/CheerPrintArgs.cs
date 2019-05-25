@@ -89,21 +89,21 @@ namespace CheerPrintWorker.Model
                 var xmlDoc = new XmlDocument();
                 xmlDoc.Load(xmlFilePath);
 
-                this.htmlWindowWidth = int.Parse(xmlDoc.SelectSingleNode("print/html_window_width").InnerXml);
-                this.htmlWindowHeight = int.Parse(xmlDoc.SelectSingleNode("print/html_window_height").InnerXml);
+                this.htmlWindowWidth = int.Parse(xmlDoc.SelectSingleNode("print/html_window_width").InnerText);
+                this.htmlWindowHeight = int.Parse(xmlDoc.SelectSingleNode("print/html_window_height").InnerText);
 
-                this.htmlInputFilePath = xmlDoc.SelectSingleNode("print/input_html_path").InnerXml;
-                this.pdfOutputFilePath = xmlDoc.SelectSingleNode("print/output_pdf_path").InnerXml;
+                this.htmlInputFilePath = xmlDoc.SelectSingleNode("print/input_html_path").InnerText;
+                this.pdfOutputFilePath = xmlDoc.SelectSingleNode("print/output_pdf_path").InnerText;
 
-                this.portraitOrientation = int.Parse(xmlDoc.SelectSingleNode("print/portrait").InnerXml);
+                this.portraitOrientation = int.Parse(xmlDoc.SelectSingleNode("print/portrait").InnerText);
 
-                this.pageWidth = double.Parse(xmlDoc.SelectSingleNode("print/page_width").InnerXml);
-                this.pageHeight = double.Parse(xmlDoc.SelectSingleNode("print/page_height").InnerXml);
+                this.pageWidth = double.Parse(xmlDoc.SelectSingleNode("print/page_width").InnerText);
+                this.pageHeight = double.Parse(xmlDoc.SelectSingleNode("print/page_height").InnerText);
 
-                this.marginTop = double.Parse(xmlDoc.SelectSingleNode("print/margin_top").InnerXml);
-                this.marginBottom = double.Parse(xmlDoc.SelectSingleNode("print/margin_bottom").InnerXml);
-                this.marginLeft = double.Parse(xmlDoc.SelectSingleNode("print/margin_left").InnerXml);
-                this.marginRight = double.Parse(xmlDoc.SelectSingleNode("print/margin_right").InnerXml);
+                this.marginTop = double.Parse(xmlDoc.SelectSingleNode("print/margin_top").InnerText);
+                this.marginBottom = double.Parse(xmlDoc.SelectSingleNode("print/margin_bottom").InnerText);
+                this.marginLeft = double.Parse(xmlDoc.SelectSingleNode("print/margin_left").InnerText);
+                this.marginRight = double.Parse(xmlDoc.SelectSingleNode("print/margin_right").InnerText);
 
             }
             catch (Exception ex)

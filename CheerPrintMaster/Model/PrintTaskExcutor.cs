@@ -104,6 +104,8 @@ namespace CheerPrintMaster.Model
         {
             try
             {
+                this.mPrintTaskNodeData = iPrintTaskNodeData;
+
                 CheerLib.LogWriter.Info("{0}.processTask Begin", this.GetType().FullName);
 
                 mCurrentPrintTaskStatus = PrintTaskStatus.InitEnv;
@@ -409,8 +411,6 @@ namespace CheerPrintMaster.Model
             {
                 var startInfo = new ProcessStartInfo();
                 startInfo.UseShellExecute = true;
-                startInfo.StandardErrorEncoding = Encoding.UTF8;
-                startInfo.StandardOutputEncoding = Encoding.UTF8;
                 startInfo.FileName = filePath;
                 startInfo.Arguments = runArgs;
 
@@ -550,8 +550,13 @@ namespace CheerPrintMaster.Model
                 var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36");
 
-                var postData = new FormUrlEncodedContent(postKvData);
+                var postData = new MultipartFormDataContent();
 
+                foreach (var kv in postKvData)
+                {
+                    postData.Add(new StringContent(kv.Value),kv.Key);
+                }
+                
                 var resp = httpClient.PostAsync(url, postData).Result;
 
                 if (!resp.IsSuccessStatusCode)

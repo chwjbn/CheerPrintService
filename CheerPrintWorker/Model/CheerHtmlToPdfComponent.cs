@@ -95,7 +95,9 @@ namespace CheerPrintWorker.Model
 
             if (!File.Exists(htmlPath))
             {
-                this.RaiseStatusChanged(0, "Loading Html File Not Exitsts!");
+                this.RaiseStatusChanged(0, "Loading Html File Not Exsist!");
+
+                CheerLib.LogWriter.Log("Not Exsist htmlPath=" + htmlPath);
 
                 this.RaiseStatusFinished(501);
                 return;

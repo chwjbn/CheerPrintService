@@ -23,7 +23,9 @@ namespace CheerLib
                     Directory.CreateDirectory(filePath);
                 }
 
-                filePath = string.Format("{0}/CheerLib.{1}.{2}.log",filePath,DateTime.Now.ToString("yyyyMMdd"), Process.GetCurrentProcess().Id);
+                var taskId = string.Format("{0}", Process.GetCurrentProcess().Id);
+
+                filePath = string.Format("{0}/CheerLib.{1}.{2}.log",filePath,DateTime.Now.ToString("yyyyMMdd"), taskId);
                 data = "["+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "]"+data+ Environment.NewLine;
 
                 File.AppendAllText(filePath, data);

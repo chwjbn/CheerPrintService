@@ -36,6 +36,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>logo.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Geckofx-Core, Version=60.0.26.0, Culture=neutral, PublicKeyToken=3209ac31600d1857, processorArchitecture=MSIL">
       <HintPath>..\packages\Geckofx60.64.60.0.26\lib\net45\Geckofx-Core.dll</HintPath>
@@ -139,6 +142,7 @@
     <Content Include="Firefox\qipcap64.dll" />
     <Content Include="Firefox\softokn3.dll" />
     <Content Include="Firefox\xul.dll" />
+    <Content Include="logo.ico" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

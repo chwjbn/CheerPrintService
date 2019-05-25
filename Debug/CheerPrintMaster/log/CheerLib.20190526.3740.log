@@ -1,0 +1,4 @@
+[2019-05-26 00:16:11][Info]CheerPrintMaster.Service.MainTaskService.startService begin.
+[2019-05-26 00:16:11][Info]RedisMqService.initRedis Begin.
+[2019-05-26 00:16:12][Info]RedisMqService.initRedis End.
+[2019-05-26 00:16:12][Info]CheerPrintMaster.Service.MainTaskService.startService end.

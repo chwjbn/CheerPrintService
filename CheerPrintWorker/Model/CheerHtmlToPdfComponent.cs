@@ -8,6 +8,7 @@ using System.Drawing;
 using System.Drawing.Text;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace CheerPrintWorker.Model
 {
@@ -88,9 +89,21 @@ namespace CheerPrintWorker.Model
 
             this.mWebBrowser.ConsoleMessage += MWebBrowser_ConsoleMessage;   //控制台消息
             this.mWebBrowser.DocumentCompleted += MWebBrowser_DocumentCompleted;   //当文档加载完成
+            
 
-            var url = this.mCheerPrintArgs.htmlInputFilePath;
-            this.mWebBrowser.Navigate(url);  //浏览器访问html文件地址
+            var htmlPath = this.mCheerPrintArgs.htmlInputFilePath;
+
+            if (!File.Exists(htmlPath))
+            {
+                this.RaiseStatusChanged(0, "Loading Html File Not Exitsts!");
+
+                this.RaiseStatusFinished(501);
+                return;
+            }
+
+            var htmlContent = File.ReadAllText(htmlPath, Encoding.UTF8);
+
+            this.mWebBrowser.LoadHtml(htmlContent);  //浏览器访问html文件地址
 
             this.RaiseStatusChanged(0, "Loading Html...");
 
@@ -270,10 +283,14 @@ namespace CheerPrintWorker.Model
                 format.Alignment = XStringAlignment.Center;
                 format.LineAlignment = XLineAlignment.Far;
 
+                double bottomHeight = this.mCheerPrintArgs.marginBottom;
+
+                bottomHeight = -1 * bottomHeight;
+
                 for (var i = 0; i < pageCount; ++i)
                 {
 
-                    var pageText = string.Format("第{0}页", i + 1);
+                    var pageText = string.Format("第{0}页，共{1}页", i + 1,pageCount);
 
                     var pdfPage = document.Pages[i];
 
@@ -283,9 +300,9 @@ namespace CheerPrintWorker.Model
                     var gfx = XGraphics.FromPdfPage(pdfPage, XGraphicsPdfPageOptions.Prepend);
 
                     var rect = pdfPage.MediaBox.ToXRect();
-                    rect.Inflate(0, -10);
+                    rect.Inflate(0, bottomHeight);
 
-                    gfx.DrawString(pageText, font, XBrushes.Black, rect, format);
+                    gfx.DrawString(pageText, font, XBrushes.Black, rect, format); 
                 }
 
                 document.Save(this.mPdfPath);

@@ -47,8 +47,8 @@ namespace CheerPrintMaster.Model
 
         public class ResultMessage:JsonData
         {
-            public int error_code = 200;
-            public string msg = string.Empty;
+            public int error_code = 500;
+            public string msg = "faild.";
         }
 
 

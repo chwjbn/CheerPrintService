@@ -1,5 +1,6 @@
 # CheerPrintService
 - 基于Firefox云打印服务
+- 支持最多10个打印任务同步进行
 - 打印程序运行方式:
 - CheerPrintWorker.exe 配置xml文件
 - CheerPrintWorker.exe cheerprint.xml

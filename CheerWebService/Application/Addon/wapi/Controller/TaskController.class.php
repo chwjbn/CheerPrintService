@@ -18,10 +18,10 @@ class TaskController extends BaseController
 			'html_window_height'=>I('post.html_window_height',900,'intval'),
 			'page_width'=>I('post.page_width',210,'floatval'),
 			'page_height'=>I('post.page_height',297,'floatval'),
-			'margin_top'=>I('post.margin_top',0,'floatval'),
-			'margin_bottom'=>I('post.margin_bottom',0,'floatval'),
-			'margin_left'=>I('post.margin_left',0,'floatval'),
-			'margin_right'=>I('post.margin_right',0,'floatval'),
+			'margin_top'=>I('post.margin_top',5,'floatval'),
+			'margin_bottom'=>I('post.margin_bottom',10,'floatval'),
+			'margin_left'=>I('post.margin_left',5,'floatval'),
+			'margin_right'=>I('post.margin_right',5,'floatval'),
 			'orientation_flag'=>I('post.orientation_flag',1,'intval'),
 		);
 		

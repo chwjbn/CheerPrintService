@@ -1,21 +1,13 @@
 ﻿using Gecko;
 using PdfSharp.Drawing;
-using PdfSharp.Drawing.Layout;
-using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Text;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace CheerPrintWorker.Model
 {
@@ -39,8 +31,8 @@ namespace CheerPrintWorker.Model
         private string mPdfPath = string.Empty;    //pdf二次处理后pdf路径
 
 
-        public event EventHandler<PdfMakingStatus> mStatusChanged = null;
-        public event EventHandler mFinished = null;
+        public event EventHandler<PdfMakingStatus> mStatusChanged = null;  //进度变化事件
+        public event EventHandler<int> mStatusFinished = null;     //完成事件
 
         public CheerHtmlToPdfComponent()
         {
@@ -60,12 +52,19 @@ namespace CheerPrintWorker.Model
         /// <param name="iCheerPrintArgs"></param>
         public void StartTask(CheerPrintArgs iCheerPrintArgs)
         {
+            //如果浏览器环境没有初始化
             if (!Gecko.Xpcom.IsInitialized)
             {
                 CheerLib.LogWriter.Error("{0}.StartTask Faild,Gecko.Xpcom.IsInitialized==false", this.GetType().FullName);
+
+                this.RaiseStatusFinished(501);
+
                 return;
             }
 
+            Gecko.GeckoPreferences.User["gfx.direct2d.disabled"] = true;
+
+            //准备数据目录、路径
             var dateTimeStr = DateTime.Now.ToString("yyyyMMddHHmmss");
             var pid = Process.GetCurrentProcess().Id;
 
@@ -75,41 +74,33 @@ namespace CheerPrintWorker.Model
             {
                 Directory.CreateDirectory(this.mDataRoot);
             }
-
             this.mHtmlPdfPath= Path.Combine(this.mDataRoot, "html_pdf.pdf");
-
             this.mPdfPath = Path.Combine(this.mDataRoot, "pdf_pdf.pdf");
 
-
+            //外部参数
             this.mCheerPrintArgs = iCheerPrintArgs;
 
-            Gecko.GeckoPreferences.User["gfx.direct2d.disabled"] = true;
-
+            
+            //创建浏览器对象
             this.mWebBrowser = new GeckoWebBrowser();
             this.components.Add(this.mWebBrowser);
-
-            this.mWebBrowser.ConsoleMessage += MWebBrowser_ConsoleMessage;
-            this.mWebBrowser.DocumentCompleted += MWebBrowser_DocumentCompleted;
-
- 
             this.mWebBrowser.Size = new Size(this.mCheerPrintArgs.htmlWindowWidth, this.mCheerPrintArgs.htmlWindowHeight);
 
+            this.mWebBrowser.ConsoleMessage += MWebBrowser_ConsoleMessage;   //控制台消息
+            this.mWebBrowser.DocumentCompleted += MWebBrowser_DocumentCompleted;   //当文档加载完成
+
             var url = this.mCheerPrintArgs.htmlInputFilePath;
+            this.mWebBrowser.Navigate(url);  //浏览器访问html文件地址
 
-            this.mWebBrowser.Navigate(url);
+            this.RaiseStatusChanged(0, "Loading Html...");
 
-            var xPdfMakingStatus = new PdfMakingStatus();
-            xPdfMakingStatus.percentage = 0;
-            xPdfMakingStatus.statusText = "Loading Html...";
-
-            this.RaiseStatusChanged(xPdfMakingStatus);
-
+            //下一步到浏览器文档加载完成
         }
 
         /// <summary>
-        /// 启动打印
+        /// 启动PDF打印
         /// </summary>
-        public void StartPrint()
+        public void StartPdfPrint()
         {
             try
             {
@@ -121,13 +112,9 @@ namespace CheerPrintWorker.Model
                 var printService = Xpcom.GetService<nsIPrintSettingsService>("@mozilla.org/gfx/printsettings-service;1");
                 var printSettings = printService.GetGlobalPrintSettingsAttribute();
 
-
-
                 //输出文件
                 printSettings.SetOutputFormatAttribute(nsIPrintSettingsConsts.kOutputFormatPDF);  //文件格式:pdf
-
                 printSettings.SetToFileNameAttribute(new nsAString(this.mHtmlPdfPath));
-
                 printSettings.SetPrintToFileAttribute(true);
 
 
@@ -210,32 +197,126 @@ namespace CheerPrintWorker.Model
 
                 CheerLib.LogWriter.Error("Making PDF File Xpcom Error:{0}", errorMsg);
 
+                var statusText = "Making PDF File Xpcom Error:" + errorMsg;
 
-                var xPdfMakingStatus = new PdfMakingStatus();
-                xPdfMakingStatus.percentage = 100;
-                xPdfMakingStatus.statusText = "Making PDF File Xpcom Error:" + errorMsg;
+                this.RaiseStatusChanged(100,statusText);
 
-                this.RaiseStatusChanged(xPdfMakingStatus);
+                this.RaiseStatusFinished(502);
+
+            }
+            catch (Exception ex)
+            {
+                CheerLib.LogWriter.Log(ex.ToString());
+                var statusText = "Making PDF File Error!";
+                this.RaiseStatusChanged(100,statusText);
+
+                this.RaiseStatusFinished(503);
+            }
+
+            //下一步到打印回调函数
+        }
+
+
+        /// <summary>
+        /// 启动PDF处理
+        /// </summary>
+        private void StartPdfProcess()
+        {
+            try
+            {
+                if (!File.Exists(this.mHtmlPdfPath))
+                {
+                    return;
+                }
+
+
+                if (PdfReader.TestPdfFile(this.mHtmlPdfPath) <= 0)
+                {
+                    CheerLib.LogWriter.Error("{0}.StartPdfProcess PdfReader.TestPdfFile Faild!", this.GetType().FullName);
+                    return;
+                }
+
+
+                var htmlPdfFileInfo = new FileInfo(this.mHtmlPdfPath);
+
+                CheerLib.LogWriter.Info("{0}.StartPdfProcess [{1}] Size={2}kb", this.GetType().FullName, this.mHtmlPdfPath, htmlPdfFileInfo.Length / 1024);
+
+                File.Copy(this.mHtmlPdfPath, this.mPdfPath);
+
+                var document = PdfReader.Open(this.mPdfPath, PdfDocumentOpenMode.Modify);
+
+                var pageCount = document.PageCount;
+
+                CheerLib.LogWriter.Error("{0}.StartPdfProcess pageCount={1}", this.GetType().FullName, pageCount);
+
+
+                var fontName = string.Empty;
+
+                //找本机上的字体列表
+                var fontList = new InstalledFontCollection();
+                foreach (var fontItem in fontList.Families)
+                {
+                    var fontItemName = fontItem.Name;
+                    if (fontItemName.Contains("宋体"))
+                    {
+                        fontName = fontItemName;
+                        break;
+                    }
+                }
+
+                var font = new XFont(fontName, 9, XFontStyle.Regular);
+
+                var format = new XStringFormat();
+                format.Alignment = XStringAlignment.Center;
+                format.LineAlignment = XLineAlignment.Far;
+
+                for (var i = 0; i < pageCount; ++i)
+                {
+
+                    var pageText = string.Format("第{0}页", i + 1);
+
+                    var pdfPage = document.Pages[i];
+
+                    var pageW = pdfPage.Width;
+                    var pageH = pdfPage.Height;
+
+                    var gfx = XGraphics.FromPdfPage(pdfPage, XGraphicsPdfPageOptions.Prepend);
+
+                    var rect = pdfPage.MediaBox.ToXRect();
+                    rect.Inflate(0, -10);
+
+                    gfx.DrawString(pageText, font, XBrushes.Black, rect, format);
+                }
+
+                document.Save(this.mPdfPath);
+
+                document.Close();
+
+                //复制到指定路径
+                File.Copy(this.mPdfPath, this.mCheerPrintArgs.pdfOutputFilePath, true);
+
+                this.RaiseStatusFinished(200);
             }
             catch (Exception ex)
             {
                 CheerLib.LogWriter.Log(ex.ToString());
 
-
-                var xPdfMakingStatus = new PdfMakingStatus();
-                xPdfMakingStatus.percentage = 100;
-                xPdfMakingStatus.statusText = "Making PDF File Error!";
-
-                this.RaiseStatusChanged(xPdfMakingStatus);
-
+                this.RaiseStatusFinished(510);
             }
         }
 
-        public void OnLocationChange(nsIWebProgress aWebProgress, nsIRequest aRequest, nsIURI aLocation, uint aFlags)
-        {
 
-        }
+        
 
+        /// <summary>
+        /// PDF打印进度变化回调
+        /// </summary>
+        /// <param name="aWebProgress"></param>
+        /// <param name="aRequest"></param>
+        /// <param name="aCurSelfProgress"></param>
+        /// <param name="aMaxSelfProgress"></param>
+        /// <param name="aCurTotalProgress"></param>
+        /// <param name="aMaxTotalProgress"></param>
         public void OnProgressChange(nsIWebProgress aWebProgress, nsIRequest aRequest, int aCurSelfProgress, int aMaxSelfProgress, int aCurTotalProgress, int aMaxTotalProgress)
         {
             if (aMaxTotalProgress <= 0)
@@ -243,45 +324,59 @@ namespace CheerPrintWorker.Model
                 return;
             }
 
-            var xPdfMakingStatus = new PdfMakingStatus();
-            xPdfMakingStatus.percentage = aCurTotalProgress;
-            xPdfMakingStatus.statusText = "Making PDF File...";
-
-            this.RaiseStatusChanged(xPdfMakingStatus);
-        }
-
-        public void OnSecurityChange(nsIWebProgress aWebProgress, nsIRequest aRequest, uint aState)
-        {
+            var statusText = "Making PDF File...";
+            this.RaiseStatusChanged(aCurTotalProgress,statusText);
 
         }
-
+ 
+        /// <summary>
+        /// PDF打印状态回调
+        /// </summary>
+        /// <param name="aWebProgress"></param>
+        /// <param name="aRequest"></param>
+        /// <param name="aStateFlags"></param>
+        /// <param name="aStatus"></param>
         public void OnStateChange(nsIWebProgress aWebProgress, nsIRequest aRequest, uint aStateFlags, int aStatus)
         {
-
             var bFinished = ((aStateFlags & nsIWebProgressListenerConstants.STATE_STOP) != 0);
-
-            //CheerLib.LogWriter.Info("{0}.OnStateChange aStateFlags={1},aStatus={2}", this.GetType().FullName, aStateFlags, aStatus);
 
             if (!bFinished)
             {
                 return;
             }
 
+            //回调过不再回调
             if (this.brwPrintCheckTimer.Enabled)
             {
                 return;
             }
 
+            //启动定时器检查打印是否结束，下一步到定时器回调
             this.brwPrintCheckTimer.Enabled = true;
 
         }
 
         public void OnStatusChange(nsIWebProgress aWebProgress, nsIRequest aRequest, int aStatus, string aMessage)
         {
+            return;
+        }
 
+        public void OnLocationChange(nsIWebProgress aWebProgress, nsIRequest aRequest, nsIURI aLocation, uint aFlags)
+        {
+            return;
+        }
+
+        public void OnSecurityChange(nsIWebProgress aWebProgress, nsIRequest aRequest, uint aState)
+        {
+            return;
         }
 
 
+        /// <summary>
+        /// 浏览器控制台消息回调
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void MWebBrowser_ConsoleMessage(object sender, ConsoleMessageEventArgs e)
         {
             CheerLib.LogWriter.Info("{0}.MWebBrowser_ConsoleMessage", this.GetType().FullName);
@@ -289,51 +384,17 @@ namespace CheerPrintWorker.Model
         }
 
 
-        protected virtual void RaiseStatusChanged(PdfMakingStatus e)
-        {
-            CheerLib.LogWriter.Info("{0}.RaiseStatusChanged percentage={1},statusText={2}", this.GetType().FullName, e.percentage, e.statusText);
-
-            var handler = this.mStatusChanged;
-
-            if (handler == null)
-            {
-                return;
-            }
-
-            handler(this, e);
-        }
-
-        protected virtual void RaiseFinished()
-        {
-
-            CheerLib.LogWriter.Info("{0}.RaiseFinished", this.GetType().FullName);
-
-
-            var xPdfMakingStatus = new PdfMakingStatus();
-            xPdfMakingStatus.percentage = 100;
-            xPdfMakingStatus.statusText = "Making PDF File Finished!";
-            this.RaiseStatusChanged(xPdfMakingStatus);
-
-            var handler = this.mFinished;
-
-            if (handler == null)
-            {
-                return;
-            }
-
-            handler(this, EventArgs.Empty);
-        }
-
-        
-
         /// <summary>
-        /// 当主文档加载完成
+        /// 浏览器文档加载完成回调
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void MWebBrowser_DocumentCompleted(object sender, Gecko.Events.GeckoDocumentCompletedEventArgs e)
         {
+            //启动文档检测定时器
             this.brwDocCheckTimer.Enabled = true;
+
+            //下一步到文档加载定时器回调方法
         }
 
         /// <summary>
@@ -352,96 +413,12 @@ namespace CheerPrintWorker.Model
 
                 if (this.mWebBrowser.Document.ReadyState== "complete")
                 {
-                    this.StartPrint();
                     this.brwDocCheckTimer.Enabled = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                CheerLib.LogWriter.Log(ex.ToString());
-            }
-        }
 
-        /// <summary>
-        /// 打印页码
-        /// </summary>
-        private void excutePageNumberPrint()
-        {
-            try
-            {
-                if (!File.Exists(this.mHtmlPdfPath))
-                {
-                    return;
+                    //启动打印
+                    this.StartPdfPrint();       
                 }
 
-
-                if (PdfReader.TestPdfFile(this.mHtmlPdfPath) <=0)
-                {
-                    CheerLib.LogWriter.Error("{0}.excutePageNumberPrint PdfReader.TestPdfFile Faild!",this.GetType().FullName);
-                    return;
-                }
-
-
-                var htmlPdfFileInfo = new FileInfo(this.mHtmlPdfPath);
-
-                CheerLib.LogWriter.Info("{0}.excutePageNumberPrint [{1}] Size={2}kb", this.GetType().FullName,this.mHtmlPdfPath, htmlPdfFileInfo.Length/1024);
-
-                File.Copy(this.mHtmlPdfPath, this.mPdfPath);
-
-                var document = PdfReader.Open(this.mPdfPath, PdfDocumentOpenMode.Modify);
-
-                var pageCount=document.PageCount;
-
-                CheerLib.LogWriter.Error("{0}.excutePageNumberPrint pageCount={1}", this.GetType().FullName,pageCount);
-
-
-                var fontName = string.Empty;
-
-                //找本机上的字体列表
-                var fontList = new InstalledFontCollection();
-                foreach (var fontItem in fontList.Families)
-                {
-                    var fontItemName=fontItem.Name;
-                    
-                    //CheerLib.LogWriter.Log(fontItemName);
-
-                    if (fontItemName.Contains("宋体"))
-                    {
-                        fontName = fontItemName;
-                        break;
-                    }
-                }
-
-                var font = new XFont(fontName, 9, XFontStyle.Regular);
-
-                var format = new XStringFormat();
-                format.Alignment = XStringAlignment.Center;
-                format.LineAlignment = XLineAlignment.Far;
-
-                for (var i=0;i<pageCount;++i)
-                {
-
-                    var pageText = string.Format("第{0}页",i+1);
-
-                    var pdfPage=document.Pages[i];
-
-                    var pageW=pdfPage.Width;
-                    var pageH = pdfPage.Height;
-
-                    var gfx = XGraphics.FromPdfPage(pdfPage, XGraphicsPdfPageOptions.Prepend);
-
-                    var rect =pdfPage.MediaBox.ToXRect();
-                    rect.Inflate(0, -10);
-
-                    gfx.DrawString(pageText,font, XBrushes.Black, rect, format);
-                }
-
-                document.Save(this.mPdfPath);
-
-                document.Close();
-
-                //复制到指定路径
-                File.Copy(this.mPdfPath, this.mCheerPrintArgs.pdfOutputFilePath,true);
             }
             catch (Exception ex)
             {
@@ -457,16 +434,67 @@ namespace CheerPrintWorker.Model
         /// <param name="e"></param>
         private void brwPrintCheckTimer_Tick(object sender, EventArgs e)
         {
+            //PDF文件被占用就一直没有结束
             if (this.isFileUsed(this.mHtmlPdfPath))
             {
                 return;
             }
-
+     
             this.brwPrintCheckTimer.Enabled = false;
 
-            this.excutePageNumberPrint();
+            //开始PDF后期处理
+            this.StartPdfProcess();
 
-            this.RaiseFinished();
+        }
+
+
+        /// <summary>
+        /// 触发状态变化事件
+        /// </summary>
+        /// <param name="processValue">进度值,0-100</param>
+        /// <param name="statusText">状态信息</param>
+        protected virtual void RaiseStatusChanged(int processValue, string statusText)
+        {
+            if (processValue < 0)
+            {
+                processValue = 0;
+            }
+
+            if (processValue > 100)
+            {
+                processValue = 100;
+            }
+
+            var xEvent = new PdfMakingStatus();
+            xEvent.percentage = processValue;
+            xEvent.statusText = statusText;
+
+            CheerLib.LogWriter.Info("{0}.RaiseStatusChanged percentage={1},statusText={2}", this.GetType().FullName, xEvent.percentage, xEvent.statusText);
+
+            var handler = this.mStatusChanged;
+
+            if (handler == null)
+            {
+                return;
+            }
+
+            handler(this, xEvent);
+        }
+
+        protected virtual void RaiseStatusFinished(int resultCode)
+        {
+            CheerLib.LogWriter.Info("{0}.RaiseStatusFinished", this.GetType().FullName);
+
+            this.RaiseStatusChanged(100, "Making PDF File Finished!");
+
+            var handler = this.mStatusFinished;
+
+            if (handler == null)
+            {
+                return;
+            }
+
+            handler(this, resultCode);
         }
 
 

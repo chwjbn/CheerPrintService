@@ -72,6 +72,10 @@ namespace CheerPrintWorker.Model
         public double marginRight = 0d;
 
 
+        /// <summary>
+        /// 通过加载xml初始化参数
+        /// </summary>
+        /// <param name="xmlFilePath">xml文件路径</param>
         public void LoadFromXml(string xmlFilePath)
         {
             try

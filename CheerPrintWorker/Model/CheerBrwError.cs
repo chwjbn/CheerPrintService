@@ -10,6 +10,11 @@ namespace CheerPrintWorker.Model
     public static class CheerBrwError
     {
 
+        /// <summary>
+        /// 获取浏览器com组件错误信息
+        /// </summary>
+        /// <param name="errorCode">错误码</param>
+        /// <returns></returns>
         public static string getErrorMsg(string errorCode)
         {
 

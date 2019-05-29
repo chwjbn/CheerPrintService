@@ -19,3 +19,5 @@ CheerPrintWorker.exe cheerprint.xml
 
 ![image](https://github.com/chwjbn/CheerPrintService/blob/master/Exp/40.png)
 ![image](https://github.com/chwjbn/CheerPrintService/blob/master/Exp/41.png)
+
+![image](https://raw.githubusercontent.com/chwjbn/cheerwaf/master/Doc/zan.jpg)
